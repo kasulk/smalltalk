@@ -1,18 +1,33 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { MongoClient } from "mongodb";
 import nodemailer from "nodemailer";
 import { marked } from "marked";
 import { formatDateToMMDD } from "./utils/formatDateToMMDD";
 
-const { MONGODB_URI, EMAIL_SENDER, EMAIL_SENDER_PASSWORD, EMAIL_SENDER_HOST } =
-  process.env;
+const {
+  MONGODB_URI,
+  EMAIL_SENDER,
+  EMAIL_SENDER_PASSWORD,
+  EMAIL_SENDER_HOST,
+  CRON_SECRET,
+  NODE_ENV,
+} = process.env;
 
 if (!MONGODB_URI) throw new Error("No MONGODB_URI provided!");
+if (!CRON_SECRET) throw new Error("No CRON_SECRET provided!");
 
 // MongoDB connection
 const client = new MongoClient(MONGODB_URI);
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // auth-check (only in production)
+  if (NODE_ENV !== "development") {
+    const authHeader = request.headers.get("authorization");
+    if (authHeader !== `Bearer ${CRON_SECRET}`) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+  }
+
   try {
     await client.connect();
     const db = client.db("smalltalk");
