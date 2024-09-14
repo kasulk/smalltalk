@@ -4,9 +4,13 @@ import nodemailer from "nodemailer";
 import { marked } from "marked";
 import { formatDateToMMDD } from "./utils/formatDateToMMDD";
 
+const { MONGODB_URI, EMAIL_SENDER, EMAIL_SENDER_PASSWORD, EMAIL_SENDER_HOST } =
+  process.env;
+
+if (!MONGODB_URI) throw new Error("No MONGODB_URI provided!");
+
 // MongoDB connection
-const uri = process.env.MONGODB_URI!;
-const client = new MongoClient(uri);
+const client = new MongoClient(MONGODB_URI);
 
 export async function GET() {
   try {
@@ -34,12 +38,12 @@ export async function GET() {
 
     // configuration of SMTP-Transporter
     const transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_SENDER_HOST,
+      host: EMAIL_SENDER_HOST,
       port: 465,
       secure: true, // true for port 465, false for other ports
       auth: {
-        user: process.env.EMAIL_SENDER,
-        pass: process.env.EMAIL_SENDER_PASS,
+        user: EMAIL_SENDER,
+        pass: EMAIL_SENDER_PASSWORD,
       },
     });
 
@@ -57,7 +61,7 @@ export async function GET() {
         html.content;
 
       await transporter.sendMail({
-        from: process.env.EMAIL_SENDER,
+        from: EMAIL_SENDER,
         to: subscriber.email,
         subject: tip.title || caption,
         html: emailBody,
