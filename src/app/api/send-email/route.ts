@@ -3,6 +3,7 @@ import { MongoClient } from "mongodb";
 import nodemailer from "nodemailer";
 import { marked } from "marked";
 import { formatDateToMMDD } from "./utils/formatDateToMMDD";
+import { replaceYearPlaceholdersWithNumYears } from "./utils/replaceYearPlaceholdersWithNumYears";
 
 const {
   MONGODB_URI,
@@ -34,6 +35,7 @@ export async function GET(request: NextRequest) {
 
     const today = new Date();
     const todayMMDD = formatDateToMMDD(today);
+    const currYear = today.getFullYear();
 
     const tip = await db.collection("tips").findOne({ date: todayMMDD });
     const subscribers = await db.collection("subscribers").find().toArray();
@@ -45,10 +47,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const title = replaceYearPlaceholdersWithNumYears(tip.title, currYear);
+    const content = replaceYearPlaceholdersWithNumYears(tip.content, currYear);
+
     // convert markdown to HTML
     const html = {
-      title: await marked(tip.title || ""),
-      content: await marked(tip.content),
+      content: await marked(content),
     };
 
     // configuration of SMTP-Transporter
@@ -72,20 +76,20 @@ export async function GET(request: NextRequest) {
       const emailBody =
         `<p>${salutation}</p>` +
         `<p>${caption}</p>` +
-        `<h2>${html.title}</h2>` +
+        `<h2>${title}</h2>` +
         html.content;
 
       await transporter.sendMail({
         from: EMAIL_SENDER,
         to: subscriber.email,
-        subject: tip.title || caption,
+        subject: title || caption,
         html: emailBody,
       });
     }
 
     return NextResponse.json({
       message: "E-Mails erfolgreich gesendet!",
-      subject: tip.title,
+      subject: title,
       content: html.content,
       date: todayMMDD,
       numSubscribers: subscribers.length,
