@@ -14,6 +14,8 @@ const {
   NODE_ENV,
 } = process.env;
 
+const isDevMode = NODE_ENV === "development";
+
 if (!MONGODB_URI) throw new Error("No MONGODB_URI provided!");
 if (!CRON_SECRET) throw new Error("No CRON_SECRET provided!");
 
@@ -22,7 +24,7 @@ const client = new MongoClient(MONGODB_URI);
 
 export async function GET(request: NextRequest) {
   // auth-check (only in production)
-  if (NODE_ENV !== "development") {
+  if (!isDevMode) {
     const authHeader = request.headers.get("authorization");
     if (authHeader !== `Bearer ${CRON_SECRET}`) {
       return new Response("Unauthorized", { status: 401 });
