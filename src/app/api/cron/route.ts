@@ -26,12 +26,12 @@ export async function GET(request: NextRequest) {
   };
 
   /// API calls
-  // call send-email-API-Route immediately
+  // call send-smalltalktip-API-Route immediately
   try {
-    await fetch(`${NEXT_PUBLIC_BASE_URL}/api/send-email`, { headers });
-    console.log("send-email-API-Route successfully called immediately!");
+    await fetch(`${NEXT_PUBLIC_BASE_URL}/api/send-smalltalktip`, { headers });
+    console.log("send-smalltalktip-API-Route successfully called immediately!");
   } catch (error) {
-    console.error("Error calling send-email-API Route:", error);
+    console.error("Error calling send-smalltalktip-API Route:", error);
   }
 
   // call API Route 2 after a 10-second delay
