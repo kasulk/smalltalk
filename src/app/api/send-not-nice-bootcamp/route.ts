@@ -2,7 +2,7 @@ import { NextResponse, NextRequest } from "next/server";
 import { MongoClient } from "mongodb";
 import nodemailer from "nodemailer";
 import { marked } from "marked";
-import { getDayNumFromDate } from "./utils";
+import { getDayNumFromDate, getReadingTime, pluralize } from "./utils";
 
 type Data = {
   dayNo: number;
@@ -67,6 +67,8 @@ export async function GET(request: NextRequest) {
       content: await marked(content),
     };
 
+    const readingTime = getReadingTime(content);
+
     // configuration of SMTP-Transporter
     const transporter = nodemailer.createTransport({
       host: EMAIL_SENDER_HOST,
@@ -86,7 +88,8 @@ export async function GET(request: NextRequest) {
       )}!`;
 
       const emailBody =
-        `<p>Day ${todayDayNum}/Week ${weekNo}: ${weekTitle}</p>` +
+        `<p>Day ${todayDayNum} / Week ${weekNo}: ${weekTitle}</p>` +
+        `<p>Read time: ${readingTime} min${pluralize(readingTime)}.</p>` +
         `<p>${salutation}</p>` +
         `<p>${caption}</p>` +
         `<h2>${title}</h2>` +
@@ -101,7 +104,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      message: "E-Mails erfolgreich gesendet!",
+      message: `E-Mail${pluralize(subscribers.length)} erfolgreich gesendet!`,
       subject: title,
       content: html.content,
       date: todayDayNum,
