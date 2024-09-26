@@ -2,8 +2,8 @@ import { NextResponse, NextRequest } from "next/server";
 import { MongoClient } from "mongodb";
 import nodemailer from "nodemailer";
 import { marked } from "marked";
-import { formatDateToMMDD } from "./utils/formatDateToMMDD";
-import { replaceYearPlaceholdersWithNumYears } from "./utils/replaceYearPlaceholdersWithNumYears";
+import { formatDateToMMDD } from "./utils";
+import { replaceYearPlaceholdersWithNumYears } from "./utils";
 
 const {
   MONGODB_URI,
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
         html.content;
 
       await transporter.sendMail({
-        from: EMAIL_SENDER,
+        from: `Smalltalk-Tipp <${EMAIL_SENDER}>`,
         to: subscriber.email,
         subject: title || caption,
         html: emailBody,
