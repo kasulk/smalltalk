@@ -2,8 +2,17 @@ import { NextResponse, NextRequest } from "next/server";
 import { MongoClient } from "mongodb";
 import nodemailer from "nodemailer";
 import { marked } from "marked";
-import { formatDateToMMDD } from "./utils/formatDateToMMDD";
-import { replaceYearPlaceholdersWithNumYears } from "./utils/replaceYearPlaceholdersWithNumYears";
+import { getDayNumFromDate, getReadingTime, pluralize } from "./utils";
+
+type Data = {
+  dayNo: number;
+  dayTitle: string;
+  weekNo: number | string;
+  weekTitle: string;
+  content: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 const {
   MONGODB_URI,
@@ -33,29 +42,32 @@ export async function GET(request: NextRequest) {
 
   try {
     await client.connect();
-    const db = client.db("smalltalk");
+    const db = client.db("not-nice-bootcamp");
 
     const today = new Date();
-    const todayMMDD = formatDateToMMDD(today);
-    const currYear = today.getFullYear();
+    const todayDayNum = getDayNumFromDate(today);
 
-    const tip = await db.collection("tips").findOne({ date: todayMMDD });
+    const data = (await db
+      .collection("data")
+      .findOne({ dayNo: todayDayNum })) as unknown as Data;
     const subscribers = await db.collection("subscribers").find().toArray();
 
-    if (!tip) {
+    if (!data) {
       return NextResponse.json(
-        { message: "Keinen Tipp für heute gefunden" },
+        { message: "Keine Challenge für heute gefunden" },
         { status: 404 }
       );
     }
 
-    const title = replaceYearPlaceholdersWithNumYears(tip.title, currYear);
-    const content = replaceYearPlaceholdersWithNumYears(tip.content, currYear);
+    const { dayTitle: title, content } = data;
+    const { weekNo, weekTitle } = data;
 
     // convert markdown to HTML
     const html = {
       content: await marked(content),
     };
+
+    const readingTime = getReadingTime(content);
 
     // configuration of SMTP-Transporter
     const transporter = nodemailer.createTransport({
@@ -70,19 +82,21 @@ export async function GET(request: NextRequest) {
 
     // send e-mails to all subscribers
     for (const subscriber of subscribers) {
-      const salutation = `Hallo ${subscriber.name}!`;
-      const caption = `Hier kommt Dein SmallTalk-Tipp für den ${today.toLocaleDateString(
+      const salutation = `Guten Morgen Rockstar!`;
+      const caption = `Hier kommt Deine Challenge für den ${today.toLocaleDateString(
         "de-DE"
       )}!`;
 
       const emailBody =
+        `<p>Day ${todayDayNum} / Week ${weekNo}: ${weekTitle}</p>` +
+        `<p>Read time: ${readingTime} min${pluralize(readingTime)}.</p>` +
         `<p>${salutation}</p>` +
         `<p>${caption}</p>` +
         `<h2>${title}</h2>` +
         html.content;
 
       await transporter.sendMail({
-        from: EMAIL_SENDER,
+        from: `Not Nice Bootcamp <${EMAIL_SENDER}>`,
         to: subscriber.email,
         subject: title || caption,
         html: emailBody,
@@ -90,10 +104,10 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      message: "E-Mails erfolgreich gesendet!",
+      message: `E-Mail${pluralize(subscribers.length)} erfolgreich gesendet!`,
       subject: title,
       content: html.content,
-      date: todayMMDD,
+      date: todayDayNum,
       numSubscribers: subscribers.length,
     });
   } catch (error) {
