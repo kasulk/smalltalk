@@ -9,7 +9,7 @@ const NEXT_BASE_URL = isDevMode ? NEXT_LOCAL_BASE_URL : NEXT_PUBLIC_BASE_URL;
 
 const TIMEOUTS = {
   notnice: 0,
-  smalltalk: 6 * 60 * 60 * 1000, // 6 hrs.
+  smalltalk: 21600000, // 6 hrs. // 6*60*60*1000
 };
 
 if (!CRON_SECRET) throw new Error("No CRON_SECRET provided!");
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       headers,
     });
     console.log(
-      "✅ send-not-nice-bootcamp-API-Route successfully called immediately!"
+      "📨 send-not-nice-bootcamp-API-Route successfully called immediately!"
     );
   } catch (error) {
     console.error(
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     try {
       await fetch(`${NEXT_BASE_URL}/api/send-smalltalktip`, { headers });
       console.log(
-        `✅ send-smalltalktip-API-Route successfully called after ${
+        `📨 send-smalltalktip-API-Route successfully called after ${
           TIMEOUTS.smalltalk / 1000
         } secs!`
       );
