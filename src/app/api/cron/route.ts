@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  console.log("Authentication successful, cron job triggered!");
+  console.log("✅ Authentication successful, cron job triggered!");
 
   const headers = {
     Authorization: `Bearer ${CRON_SECRET}`,
@@ -33,32 +33,37 @@ export async function GET(request: NextRequest) {
   /// API calls
   // call send-not-nice-bootcamp-API-Route immediately
   try {
-    await fetch(`${NEXT_PUBLIC_BASE_URL}/api/send-not-nice-bootcamp`, {
+    await fetch(`${NEXT_BASE_URL}/api/send-not-nice-bootcamp`, {
       headers,
     });
     console.log(
-      "send-not-nice-bootcamp-API-Route successfully called immediately!"
+      "✅ send-not-nice-bootcamp-API-Route successfully called immediately!"
     );
   } catch (error) {
-    console.error("Error calling send-not-nice-bootcamp-API Route:", error);
+    console.error(
+      "❌ Error calling send-not-nice-bootcamp-API Route:\n\n",
+      error
+    );
   }
 
   // call send-smalltalktip-API-Route after 6 hrs
   setTimeout(async () => {
     try {
-      await fetch(`${NEXT_PUBLIC_BASE_URL}/api/send-smalltalktip`, { headers });
+      await fetch(`${NEXT_BASE_URL}/api/send-smalltalktip`, { headers });
       console.log(
-        `send-smalltalktip-API-Route successfully called after ${
+        `✅ send-smalltalktip-API-Route successfully called after ${
           TIMEOUTS.smalltalk / 1000
         } secs!`
       );
     } catch (error) {
-      console.error("Error calling send-smalltalktip-API Route:", error);
+      console.error("❌ Error calling send-smalltalktip-API Route:\n\n", error);
     }
   }, TIMEOUTS.smalltalk);
 
   return new Response(
-    JSON.stringify({ message: "Cron job triggered and API calls scheduled!" }),
+    JSON.stringify({
+      message: "✅ Cron job triggered and API calls scheduled!",
+    }),
     {
       status: 200,
       headers: { "Content-Type": "application/json" },
