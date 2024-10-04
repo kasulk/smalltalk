@@ -2,8 +2,8 @@
  * Replaces all occurrences of year placeholders in the format '$YYYY' in a given string
  * with the number of years that have passed since that year, based on the provided year.
  *
- * @param {string} yearPlaceholder - The input string containing year placeholders in the format '$YYYY'.
- * @param {number} otherYear - The year to be used as the reference point for calculating the difference in years.
+ * @param {string} text - The input string containing year placeholders in the format '$YYYY'.
+ * @param {number} refYear - The year to be used as the reference point for calculating the difference in years.
  * @returns {string} A new string where each '$YYYY' is replaced with the difference in years
  *                   from the provided year to the year from the placeholder.
  *
@@ -16,13 +16,14 @@
  *  // Returns "Vor 50 Jahren war das Jahr 1974."
  */
 export function replaceYearPlaceholdersWithNumYears(
-  yearPlaceholder: string,
-  otherYear: number
+  text: string,
+  refYear: number
 ): string {
+  if (!text) return "";
   const regex = /\$([0-9]{4})/g;
-  return yearPlaceholder.replace(regex, (_, yearStr) => {
+  return text.replace(regex, (_, yearStr) => {
     const year = parseInt(yearStr);
-    const numYears = otherYear - year;
+    const numYears = refYear - year;
     return numYears.toString();
   });
 }
