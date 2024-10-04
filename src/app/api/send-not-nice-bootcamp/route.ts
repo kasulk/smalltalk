@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { MongoClient } from "mongodb";
-import nodemailer from "nodemailer";
 import { marked } from "marked";
+import { transporter } from "@/utils";
 import { getDayNumFromDate, getReadingTime, pluralize } from "./utils";
 
 type Data = {
@@ -14,14 +14,7 @@ type Data = {
   updatedAt: Date;
 };
 
-const {
-  MONGODB_URI,
-  EMAIL_SENDER,
-  EMAIL_SENDER_PASSWORD,
-  EMAIL_SENDER_HOST,
-  CRON_SECRET,
-  NODE_ENV,
-} = process.env;
+const { MONGODB_URI, EMAIL_SENDER, CRON_SECRET, NODE_ENV } = process.env;
 
 const isDevMode = NODE_ENV === "development";
 
@@ -68,17 +61,6 @@ export async function GET(request: NextRequest) {
     };
 
     const readingTime = getReadingTime(content);
-
-    // configuration of SMTP-Transporter
-    const transporter = nodemailer.createTransport({
-      host: EMAIL_SENDER_HOST,
-      port: 465,
-      secure: true, // true for port 465, false for other ports
-      auth: {
-        user: EMAIL_SENDER,
-        pass: EMAIL_SENDER_PASSWORD,
-      },
-    });
 
     // send e-mails to all subscribers
     for (const subscriber of subscribers) {
