@@ -1,7 +1,13 @@
 import type { NextRequest } from "next/server";
+import { sendEmail } from "./utils";
 
-const { NODE_ENV, CRON_SECRET, NEXT_LOCAL_BASE_URL, NEXT_PUBLIC_BASE_URL } =
-  process.env;
+const {
+  NODE_ENV,
+  CRON_SECRET,
+  NEXT_LOCAL_BASE_URL,
+  NEXT_PUBLIC_BASE_URL,
+  EMAIL_SENDER,
+} = process.env;
 
 const isDevMode = NODE_ENV === "development";
 
@@ -40,6 +46,8 @@ export async function GET(request: NextRequest) {
       "📨 send-not-nice-bootcamp-API-Route successfully called immediately!"
     );
   } catch (error) {
+    const { message } = error as Error;
+    sendEmail(EMAIL_SENDER, message, "Error on Not-Nice-Bootcamp-API-Call!");
     console.error(
       "❌ Error calling send-not-nice-bootcamp-API Route:\n\n",
       error
@@ -56,6 +64,8 @@ export async function GET(request: NextRequest) {
         } secs!`
       );
     } catch (error) {
+      const { message } = error as Error;
+      sendEmail(EMAIL_SENDER, message, "Error on Smalltalk-API-Call!");
       console.error("❌ Error calling send-smalltalktip-API Route:\n\n", error);
     }
   }, TIMEOUTS.smalltalk);
