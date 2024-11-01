@@ -64,7 +64,6 @@ export async function GET(request: NextRequest) {
 
     // send e-mails to all subscribers
     for (const subscriber of subscribers) {
-      const salutation = `Guten Morgen Rockstar!`;
       const caption = `Hier kommt Deine Challenge für den ${today.toLocaleDateString(
         "de-DE"
       )}!`;
@@ -72,8 +71,7 @@ export async function GET(request: NextRequest) {
       const emailBody =
         `<p>Day ${todayDayNum} / Week ${weekNo}: ${weekTitle}</p>` +
         `<p>Read time: ${readingTime} min${pluralize(readingTime)}.</p>` +
-        `<p>${salutation}</p>` +
-        `<p>${caption}</p>` +
+        // `<p>${caption}</p>` +
         `<h2>${title}</h2>` +
         html.content;
 
