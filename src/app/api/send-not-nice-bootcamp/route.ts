@@ -14,11 +14,13 @@ type Data = {
   updatedAt: Date;
 };
 
-const { MONGODB_URI, EMAIL_SENDER, CRON_SECRET, NODE_ENV } = process.env;
+const { MONGODB_URI, EMAIL_SENDER, CRON_USERNAME, CRON_SECRET, NODE_ENV } =
+  process.env;
 
 const isDevMode = NODE_ENV === "development";
 
 if (!MONGODB_URI) throw new Error("No MONGODB_URI provided!");
+if (!CRON_USERNAME) throw new Error("No CRON_USERNAME provided!");
 if (!CRON_SECRET) throw new Error("No CRON_SECRET provided!");
 
 // MongoDB connection
@@ -28,9 +30,28 @@ export async function GET(request: NextRequest) {
   // auth-check (only in production)
   if (!isDevMode) {
     const authHeader = request.headers.get("authorization");
-    if (authHeader !== `Bearer ${CRON_SECRET}`) {
+
+    if (!authHeader) {
       return new Response("Unauthorized", { status: 401 });
     }
+
+    if (authHeader.startsWith("Bearer ")) {
+      if (authHeader !== `Bearer ${CRON_SECRET}`) {
+        return new Response("Unauthorized", { status: 401 });
+      }
+    }
+
+    if (authHeader.startsWith("Basic ")) {
+      const base64Credentials = authHeader.split(" ")[1];
+      const credentials = atob(base64Credentials).split(":");
+      const [username, password] = credentials;
+
+      if (username !== CRON_USERNAME || password !== CRON_SECRET) {
+        return new Response("Unauthorized", { status: 401 });
+      }
+    }
+
+    console.log("✅ Authentication successful, cron job triggered!");
   }
 
   try {
@@ -83,13 +104,16 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({
-      message: `E-Mail${pluralize(subscribers.length)} erfolgreich gesendet!`,
-      subject: title,
-      content: html.content,
-      date: todayDayNum,
-      numSubscribers: subscribers.length,
-    });
+    return NextResponse.json(
+      {
+        message: `E-Mail${pluralize(subscribers.length)} erfolgreich gesendet!`,
+        subject: title,
+        content: html.content,
+        date: todayDayNum,
+        numSubscribers: subscribers.length,
+      },
+      { status: 200 }
+    );
   } catch (error) {
     const { message } = error as Error;
     return NextResponse.json({ error: message }, { status: 500 });
