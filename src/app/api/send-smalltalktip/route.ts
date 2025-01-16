@@ -1,14 +1,17 @@
 import { NextResponse, NextRequest } from "next/server";
 import { MongoClient } from "mongodb";
 import { marked } from "marked";
+import { apiAuthCheck } from "../utils";
 import { transporter } from "@/utils";
 import { formatDateToMMDD, replaceYearPlaceholdersWithNumYears } from "./utils";
 
-const { MONGODB_URI, EMAIL_SENDER, CRON_SECRET, NODE_ENV } = process.env;
+const { MONGODB_URI, EMAIL_SENDER, CRON_USERNAME, CRON_SECRET, NODE_ENV } =
+  process.env;
 
 const isDevMode = NODE_ENV === "development";
 
 if (!MONGODB_URI) throw new Error("No MONGODB_URI provided!");
+if (!CRON_USERNAME) throw new Error("No CRON_USERNAME provided!");
 if (!CRON_SECRET) throw new Error("No CRON_SECRET provided!");
 
 // MongoDB connection
@@ -16,12 +19,7 @@ const client = new MongoClient(MONGODB_URI);
 
 export async function GET(request: NextRequest) {
   // auth-check (only in production)
-  if (!isDevMode) {
-    const authHeader = request.headers.get("authorization");
-    if (authHeader !== `Bearer ${CRON_SECRET}`) {
-      return new Response("Unauthorized", { status: 401 });
-    }
-  }
+  if (!isDevMode) apiAuthCheck(request, process.env);
 
   try {
     await client.connect();
