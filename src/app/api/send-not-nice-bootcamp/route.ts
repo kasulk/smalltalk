@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { MongoClient } from "mongodb";
 import { marked } from "marked";
+import { apiAuthCheck } from "../utils";
 import { transporter } from "@/utils";
 import { getDayNumFromDate, getReadingTime, pluralize } from "./utils";
 
@@ -28,31 +29,7 @@ const client = new MongoClient(MONGODB_URI);
 
 export async function GET(request: NextRequest) {
   // auth-check (only in production)
-  if (!isDevMode) {
-    const authHeader = request.headers.get("authorization");
-
-    if (!authHeader) {
-      return new Response("Unauthorized", { status: 401 });
-    }
-
-    if (authHeader.startsWith("Bearer ")) {
-      if (authHeader !== `Bearer ${CRON_SECRET}`) {
-        return new Response("Unauthorized", { status: 401 });
-      }
-    }
-
-    if (authHeader.startsWith("Basic ")) {
-      const base64Credentials = authHeader.split(" ")[1];
-      const credentials = atob(base64Credentials).split(":");
-      const [username, password] = credentials;
-
-      if (username !== CRON_USERNAME || password !== CRON_SECRET) {
-        return new Response("Unauthorized", { status: 401 });
-      }
-    }
-
-    console.log("✅ Authentication successful, cron job triggered!");
-  }
+  if (!isDevMode) apiAuthCheck(request, process.env);
 
   try {
     await client.connect();
