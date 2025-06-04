@@ -28,7 +28,6 @@ export async function GET(request: NextRequest) {
 
     const today = new Date();
     const numTips = await tips.countDocuments();
-    console.log("numTips:", numTips);
 
     const randomNum = getRandomNumBetweenZeroAnd(numTips);
     const randomNumStr = String(randomNum).padStart(3, "0");
@@ -52,16 +51,19 @@ export async function GET(request: NextRequest) {
 
     // send e-mails to all subscribers
     for (const subscriber of subscribers) {
-      const salutation = `Hallo ${subscriber.name}!`;
+      // const salutation = `Hallo ${subscriber.name}!`;
       const caption = `Hier kommt Dein Erfolgs-Tipp für den ${today.toLocaleDateString(
         "de-DE"
       )}!`;
+      const tipNum = `<p style='text-align: right; font-size: 6pt'>${randomNum}</p>`;
 
-      const emailBody =
-        `<p>${salutation}</p>` +
-        `<p>${caption}</p>` +
-        `<h2>${title}</h2>` +
-        html.content;
+      const emailBody = [
+        // `<p>${salutation}</p>`,
+        // `<p>${caption}</p>`,
+        title ? `<h2>${title}</h2>` : "",
+        html.content,
+        tipNum,
+      ].join("");
 
       await transporter.sendMail({
         from: `Erfolgs-Tipp <${EMAIL_SENDER}>`,
