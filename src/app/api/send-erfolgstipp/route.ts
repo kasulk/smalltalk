@@ -1,9 +1,8 @@
 import { NextResponse, NextRequest } from "next/server";
 import { MongoClient } from "mongodb";
 import { marked } from "marked";
-import { apiAuthCheck } from "../utils";
+import { apiAuthCheck, removeLeadingZeros } from "../utils";
 import { transporter } from "@/utils";
-import { getRandomNumBetweenZeroAnd } from "./utils";
 
 const { MONGODB_URI, EMAIL_SENDER, CRON_USERNAME, CRON_SECRET, NODE_ENV } =
   process.env;
@@ -27,22 +26,24 @@ export async function GET(request: NextRequest) {
     const tips = db.collection("tips");
 
     const today = new Date();
-    const numTips = await tips.countDocuments();
 
-    const randomNum = getRandomNumBetweenZeroAnd(numTips);
-    const randomNumStr = String(randomNum).padStart(3, "0");
+    const randomDocument = await tips
+      .aggregate([{ $sample: { size: 1 } }]) // $sample ist Aggregation-Operator, der size-viele zufällige Dokumente zurückgibt
+      .toArray();
 
-    const tip = await tips.findOne({ no: randomNumStr });
+    const tip = randomDocument[0];
+
     const subscribers = await db.collection("subscribers").find().toArray();
 
     if (!tip) {
       return NextResponse.json(
-        { message: "Keinen Tipp für heute gefunden...", no: randomNumStr },
+        { message: "Keinen Tipp für heute gefunden..." },
         { status: 404 }
       );
     }
 
     const { title, content } = tip;
+    const no = removeLeadingZeros(tip.no);
 
     // convert markdown to HTML
     const html = {
@@ -55,14 +56,14 @@ export async function GET(request: NextRequest) {
       const caption = `Hier kommt Dein Erfolgs-Tipp für den ${today.toLocaleDateString(
         "de-DE"
       )}!`;
-      const tipNum = `<p style='text-align: right; font-size: 6pt'>${randomNum}</p>`;
+      const tipNumElement = `<p style='text-align: right; font-size: 6pt'>${no}</p>`;
 
       const emailBody = [
         // `<p>${salutation}</p>`,
         // `<p>${caption}</p>`,
         title ? `<h2>${title}</h2>` : "",
         html.content,
-        tipNum,
+        tipNumElement,
       ].join("");
 
       await transporter.sendMail({
@@ -77,7 +78,7 @@ export async function GET(request: NextRequest) {
       message: "E-Mails erfolgreich gesendet!",
       subject: title,
       content: html.content,
-      no: randomNumStr,
+      no: tip.no,
       numSubscribers: subscribers.length,
     });
   } catch (error) {
