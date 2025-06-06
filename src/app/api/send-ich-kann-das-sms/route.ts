@@ -3,6 +3,7 @@ import { MongoClient } from "mongodb";
 import { marked } from "marked";
 import { apiAuthCheck, removeLeadingZeros } from "../utils";
 import { transporter } from "@/utils";
+import { getRandomNumBetweenZeroAnd } from "./utils";
 
 const { MONGODB_URI, EMAIL_SENDER, CRON_USERNAME, CRON_SECRET, NODE_ENV } =
   process.env;
@@ -20,30 +21,36 @@ export async function GET(request: NextRequest) {
   // auth-check (only in production)
   if (!isDevMode) apiAuthCheck(request, process.env);
 
+  // only execute about every 1/24 time (basically once per day, if API is called hourly)
+  const randomNum = getRandomNumBetweenZeroAnd(24);
+  if (randomNum !== 0) {
+    return NextResponse.json(
+      { message: "Zufallszahl nicht 0. Keine E-Mails gesendet.", randomNum },
+      { status: 404 }
+    );
+  }
+
   try {
     await client.connect();
-    const db = client.db("erfolgstipps");
+    const db = client.db("ich-kann-das-sms");
     const tips = db.collection("tips");
-
-    const today = new Date();
 
     const randomDocuments = await tips
       .aggregate([{ $sample: { size: 1 } }]) // $sample ist Aggregation-Operator, der size-viele zufällige Dokumente zurückgibt
       .toArray();
 
     const tip = randomDocuments[0];
-
     const subscribers = await db.collection("subscribers").find().toArray();
 
     if (!tip) {
       return NextResponse.json(
-        { message: "Keinen Tipp für heute gefunden..." },
+        { message: "Keinen zufaelligen Tipp gefunden..." },
         { status: 404 }
       );
     }
 
-    const { title, content } = tip;
-    const no = removeLeadingZeros(tip.no);
+    const { content } = tip;
+    const page = removeLeadingZeros(tip.page);
 
     // convert markdown to HTML
     const html = {
@@ -52,34 +59,26 @@ export async function GET(request: NextRequest) {
 
     // send e-mails to all subscribers
     for (const subscriber of subscribers) {
-      // const salutation = `Hallo ${subscriber.name}!`;
-      const caption = `Hier kommt Dein Erfolgs-Tipp für den ${today.toLocaleDateString(
-        "de-DE"
-      )}!`;
-      const tipNumElement = `<p style='text-align: right; font-size: 6pt'>${no}</p>`;
-
       const emailBody = [
-        // `<p>${salutation}</p>`,
-        // `<p>${caption}</p>`,
-        title ? `<h2>${title}</h2>` : "",
         html.content,
-        tipNumElement,
+        `<p style='text-align: right; font-size: 6pt'>${page}</p>`,
       ].join("");
 
       await transporter.sendMail({
-        from: `Erfolgs-Tipp <${EMAIL_SENDER}>`,
+        from: `Marc <${EMAIL_SENDER}>`,
         to: subscriber.email,
-        subject: title || caption,
+        subject: `SMS von Marc`,
         html: emailBody,
       });
     }
 
     return NextResponse.json({
       message: "E-Mails erfolgreich gesendet!",
-      subject: title,
+      subject: `SMS von Marc`,
       content: html.content,
-      no: tip.no,
+      page,
       numSubscribers: subscribers.length,
+      randomNum,
     });
   } catch (error) {
     const { message } = error as Error;
