@@ -27,11 +27,11 @@ export async function GET(request: NextRequest) {
 
     const today = new Date();
 
-    const randomDocument = await tips
+    const randomDocuments = await tips
       .aggregate([{ $sample: { size: 1 } }]) // $sample ist Aggregation-Operator, der size-viele zufällige Dokumente zurückgibt
       .toArray();
 
-    const tip = randomDocument[0];
+    const tip = randomDocuments[0];
 
     const subscribers = await db.collection("subscribers").find().toArray();
 
