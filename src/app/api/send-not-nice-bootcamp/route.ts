@@ -26,6 +26,7 @@ if (!CRON_SECRET) throw new Error("No CRON_SECRET provided!");
 
 // MongoDB connection
 const client = new MongoClient(MONGODB_URI);
+let logMessage: string;
 
 export async function GET(request: NextRequest) {
   // auth-check (only in production)
@@ -44,10 +45,9 @@ export async function GET(request: NextRequest) {
     const subscribers = await db.collection("subscribers").find().toArray();
 
     if (!data) {
-      return NextResponse.json(
-        { message: "Keine Challenge für heute gefunden" },
-        { status: 404 }
-      );
+      logMessage = `❌ Keine Challenge fuer heute gefunden...`;
+      console.log(logMessage);
+      return NextResponse.json({ message: logMessage }, { status: 404 });
     }
 
     const { dayTitle: title, content } = data;
@@ -69,7 +69,6 @@ export async function GET(request: NextRequest) {
       const emailBody =
         `<p>Day ${todayDayNum} / Week ${weekNo}: ${weekTitle}</p>` +
         `<p>Read time: ${readingTime} min${pluralize(readingTime)}.</p>` +
-        // `<p>${caption}</p>` +
         `<h2>${title}</h2>` +
         html.content;
 
@@ -81,9 +80,13 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    logMessage = `✅ E-Mail${pluralize(
+      subscribers.length
+    )} erfolgreich gesendet!`;
+
     return NextResponse.json(
       {
-        message: `E-Mail${pluralize(subscribers.length)} erfolgreich gesendet!`,
+        message: logMessage,
         subject: title,
         content: html.content,
         date: todayDayNum,
@@ -93,6 +96,7 @@ export async function GET(request: NextRequest) {
     );
   } catch (error) {
     const { message } = error as Error;
+    console.log(message);
     return NextResponse.json({ error: message }, { status: 500 });
   } finally {
     await client.close();

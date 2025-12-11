@@ -16,6 +16,7 @@ if (!CRON_SECRET) throw new Error("No CRON_SECRET provided!");
 
 // MongoDB connection
 const client = new MongoClient(MONGODB_URI);
+let logMessage: string;
 
 export async function GET(request: NextRequest) {
   // auth-check (only in production)
@@ -24,10 +25,9 @@ export async function GET(request: NextRequest) {
   // only execute about every 1/24 time (basically once per day, if API is called hourly)
   const randomNum = getRandomNumBetweenZeroAnd(24);
   if (randomNum !== 0) {
-    return NextResponse.json(
-      { message: "Zufallszahl nicht 0. Keine E-Mails gesendet.", randomNum },
-      { status: 404 }
-    );
+    logMessage = `❌ Zufallszahl nicht 0. Keine E-Mails gesendet. (${randomNum})`;
+    console.log(logMessage);
+    return NextResponse.json({ message: logMessage }, { status: 404 });
   }
 
   try {
@@ -43,10 +43,9 @@ export async function GET(request: NextRequest) {
     const subscribers = await db.collection("subscribers").find().toArray();
 
     if (!tip) {
-      return NextResponse.json(
-        { message: "Keinen zufaelligen Tipp gefunden..." },
-        { status: 404 }
-      );
+      logMessage = "❌ Keinen zufaelligen Tipp gefunden...";
+      console.log(logMessage);
+      return NextResponse.json({ message: logMessage }, { status: 404 });
     }
 
     const { content } = tip;
@@ -74,8 +73,10 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    logMessage = "✅ E-Mails erfolgreich gesendet!";
+
     return NextResponse.json({
-      message: "E-Mails erfolgreich gesendet!",
+      message: logMessage,
       subject,
       content: html.content,
       numSubscribers: subscribers.length,
@@ -83,6 +84,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     const { message } = error as Error;
+    console.log(message);
     return NextResponse.json({ error: message }, { status: 500 });
   } finally {
     await client.close();
