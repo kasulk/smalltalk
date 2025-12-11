@@ -16,6 +16,7 @@ if (!CRON_SECRET) throw new Error("No CRON_SECRET provided!");
 
 // MongoDB connection
 const client = new MongoClient(MONGODB_URI);
+let logMessage: string;
 
 export async function GET(request: NextRequest) {
   // auth-check (only in production)
@@ -33,10 +34,9 @@ export async function GET(request: NextRequest) {
     const subscribers = await db.collection("subscribers").find().toArray();
 
     if (!tip) {
-      return NextResponse.json(
-        { message: "Keinen Tipp für heute gefunden" },
-        { status: 404 }
-      );
+      logMessage = `❌ Keinen Tipp fuer heute gefunden`;
+      console.log(logMessage);
+      return NextResponse.json({ message: logMessage }, { status: 404 });
     }
 
     const title = replaceYearPlaceholdersWithNumYears(tip.title, currYear);
@@ -68,8 +68,10 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    logMessage = "✅ E-Mails erfolgreich gesendet!";
+
     return NextResponse.json({
-      message: "E-Mails erfolgreich gesendet!",
+      message: logMessage,
       subject: title,
       content: html.content,
       date: todayMMDD,
@@ -77,6 +79,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     const { message } = error as Error;
+    console.log(message);
     return NextResponse.json({ error: message }, { status: 500 });
   } finally {
     await client.close();
