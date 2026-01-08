@@ -40,7 +40,10 @@ export async function GET(request: NextRequest) {
     }
 
     const title = replaceYearPlaceholdersWithNumYears(tip.title, currYear);
-    const content = replaceYearPlaceholdersWithNumYears(tip.content, currYear);
+    const content = replaceYearPlaceholdersWithNumYears(
+      tip.content,
+      currYear
+    ).replace("$thisYear", currYear.toString());
 
     // convert markdown to HTML
     const html = {
