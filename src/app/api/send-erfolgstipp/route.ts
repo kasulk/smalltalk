@@ -1,8 +1,9 @@
 import { NextResponse, NextRequest } from "next/server";
 import { MongoClient } from "mongodb";
 import { marked } from "marked";
-import { apiAuthCheck, removeLeadingZeros } from "../utils";
+import { apiAuthCheck, getRandomDocument, removeLeadingZeros } from "../utils";
 import { transporter } from "@/utils";
+import { findDocWithTodayNo } from "./utils";
 
 const { MONGODB_URI, EMAIL_SENDER, CRON_USERNAME, CRON_SECRET, NODE_ENV } =
   process.env;
@@ -28,11 +29,11 @@ export async function GET(request: NextRequest) {
 
     const today = new Date();
 
-    const randomDocuments = await tips
-      .aggregate([{ $sample: { size: 1 } }]) // $sample ist Aggregation-Operator, der size-viele zufällige Dokumente zurückgibt
-      .toArray();
+    const specificDocForToday = await findDocWithTodayNo(tips);
 
-    const tip = randomDocuments[0];
+    const tip = specificDocForToday
+      ? specificDocForToday
+      : await getRandomDocument(tips);
 
     const subscribers = await db.collection("subscribers").find().toArray();
 
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { title, content } = tip;
-    const no = removeLeadingZeros(tip.no);
+    const no = specificDocForToday ? tip.no : removeLeadingZeros(tip.no);
 
     // convert markdown to HTML
     const html = {
