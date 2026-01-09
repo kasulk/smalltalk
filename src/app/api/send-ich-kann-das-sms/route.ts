@@ -1,9 +1,13 @@
 import { NextResponse, NextRequest } from "next/server";
 import { MongoClient } from "mongodb";
 import { marked } from "marked";
-import { apiAuthCheck, removeLeadingZeros } from "../utils";
 import { transporter } from "@/utils";
-import { getRandomNumBetweenZeroAnd } from "./utils";
+import {
+  apiAuthCheck,
+  getRandomDocument,
+  removeLeadingZeros,
+  getRandomNumBetweenZeroAnd,
+} from "../utils";
 
 const { MONGODB_URI, EMAIL_SENDER, CRON_USERNAME, CRON_SECRET, NODE_ENV } =
   process.env;
@@ -25,9 +29,9 @@ export async function GET(request: NextRequest) {
   // only execute about every 1/24 time (basically once per day, if API is called hourly)
   const randomNum = getRandomNumBetweenZeroAnd(24);
   if (randomNum !== 0) {
-    logMessage = `❌ Zufallszahl nicht 0. Keine E-Mails gesendet. (${randomNum})`;
+    logMessage = `🟡 Zufallszahl nicht ${randomNum}, nicht 0. Keine E-Mails gesendet.`;
     console.log(logMessage);
-    return NextResponse.json({ message: logMessage }, { status: 404 });
+    return NextResponse.json({ message: logMessage }, { status: 204 });
   }
 
   try {
@@ -35,11 +39,7 @@ export async function GET(request: NextRequest) {
     const db = client.db("ich-kann-das-sms");
     const tips = db.collection("tips");
 
-    const randomDocuments = await tips
-      .aggregate([{ $sample: { size: 1 } }]) // $sample ist Aggregation-Operator, der size-viele zufällige Dokumente zurückgibt
-      .toArray();
-
-    const tip = randomDocuments[0];
+    const tip = await getRandomDocument(tips);
     const subscribers = await db.collection("subscribers").find().toArray();
 
     if (!tip) {
