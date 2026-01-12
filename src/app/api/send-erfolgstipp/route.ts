@@ -1,9 +1,13 @@
 import { NextResponse, NextRequest } from "next/server";
 import { MongoClient } from "mongodb";
 import { marked } from "marked";
-import { apiAuthCheck, getRandomDocument, removeLeadingZeros } from "../utils";
 import { transporter } from "@/utils";
-import { findDocWithTodayNo } from "./utils";
+import {
+  apiAuthCheck,
+  getRandomNonSpecificDayDoc,
+  removeLeadingZeros,
+} from "../utils";
+import { getSpecificDayDoc } from "./utils";
 
 const { MONGODB_URI, EMAIL_SENDER, CRON_USERNAME, CRON_SECRET, NODE_ENV } =
   process.env;
@@ -29,11 +33,11 @@ export async function GET(request: NextRequest) {
 
     const today = new Date();
 
-    const specificDocForToday = await findDocWithTodayNo(tips);
+    const specificDocForToday = await getSpecificDayDoc(tips);
 
     const tip = specificDocForToday
       ? specificDocForToday
-      : await getRandomDocument(tips);
+      : await getRandomNonSpecificDayDoc(tips);
 
     const subscribers = await db.collection("subscribers").find().toArray();
 
