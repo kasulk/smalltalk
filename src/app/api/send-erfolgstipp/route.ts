@@ -7,7 +7,7 @@ import {
   getRandomNonSpecificDayDoc,
   removeLeadingZeros,
 } from "../utils";
-import { getSpecificDayDoc } from "./utils";
+import { getSpecificDayDoc, insertDynamicYears } from "./utils";
 
 const { MONGODB_URI, EMAIL_SENDER, CRON_USERNAME, CRON_SECRET, NODE_ENV } =
   process.env;
@@ -47,7 +47,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: logMessage }, { status: 404 });
     }
 
-    const { title, content } = tip;
+    const title = tip.title;
+    const content = insertDynamicYears(tip.content);
     const no = specificDocForToday ? tip.no : removeLeadingZeros(tip.no);
 
     // convert markdown to HTML
