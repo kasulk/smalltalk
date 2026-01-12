@@ -1,1 +1,1 @@
-export * from "./findDocWithTodayNo";
+export * from "./getSpecificDayDoc";
