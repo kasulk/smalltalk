@@ -47,8 +47,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: logMessage }, { status: 404 });
     }
 
-    const { content } = tip;
-    const source = tip.source;
+    const { content, source } = tip;
     const dativEndung = source.toLowerCase().includes("universum") ? "m" : "n";
     const subject = `SMS vo${dativEndung} ${source}`;
 
@@ -59,10 +58,7 @@ export async function GET(request: NextRequest) {
 
     // send e-mails to all subscribers
     for (const subscriber of subscribers) {
-      const emailBody = [
-        html.content,
-        `<p style='text-align: right; font-size: 6pt'>- ${source}</p>`,
-      ].join("");
+      const emailBody = [html.content].join("");
 
       await transporter.sendMail({
         from: `Das Universum <${EMAIL_SENDER}>`,
