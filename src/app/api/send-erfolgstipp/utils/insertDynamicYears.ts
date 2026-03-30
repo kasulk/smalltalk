@@ -3,6 +3,6 @@ export function insertDynamicYears(text: string): string {
   const currYear = today.getFullYear();
   const nextYear = currYear + 1;
   return text
-    .replace("$thisYear", currYear.toString())
-    .replace("$nextYear", nextYear.toString());
+    .replaceAll("$thisYear", currYear.toString())
+    .replaceAll("$nextYear", nextYear.toString());
 }
