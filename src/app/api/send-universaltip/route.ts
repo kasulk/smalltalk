@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
   // only execute about every 1/24 time (basically once per day, if API is called hourly)
   const randomNum = getRandomNumBetweenZeroAnd(24);
   if (randomNum !== 0) {
-    logMessage = `🟡 Zufallszahl nicht ${randomNum}, nicht 0. Keine E-Mails gesendet.`;
+    logMessage = `🟡 Zufallszahl ${randomNum}, nicht 0. Keine E-Mails gesendet.`;
     console.log(logMessage);
     return NextResponse.json({ message: logMessage }, { status: 204 });
   }
