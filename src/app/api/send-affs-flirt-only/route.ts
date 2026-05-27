@@ -5,9 +5,13 @@ import { transporter } from "@/utils";
 import {
   apiAuthCheck,
   getRandomDocument,
-  removeLeadingZeros,
   getRandomNumBetweenZeroAnd,
 } from "../utils";
+
+const filters = {
+  category: "flirt",
+  // moreFieldsToBeFiltered: "..."
+};
 
 const { MONGODB_URI, EMAIL_SENDER, CRON_USERNAME, CRON_SECRET, NODE_ENV } =
   process.env;
@@ -26,8 +30,8 @@ export async function GET(request: NextRequest) {
   // auth-check (only in production)
   if (!isDevMode) apiAuthCheck(request, process.env);
 
-  // only execute about every 1/24 time (basically once per day, if API is called hourly)
-  const randomNum = getRandomNumBetweenZeroAnd(24);
+  // only execute about every 1/2 time (basically once every 2 hours, if API is called hourly)
+  const randomNum = getRandomNumBetweenZeroAnd(2);
   if (randomNum !== 0) {
     logMessage = `🟡 Zufallszahl ${randomNum}, nicht 0. Keine E-Mails gesendet.`;
     console.log(logMessage);
@@ -36,10 +40,10 @@ export async function GET(request: NextRequest) {
 
   try {
     await client.connect();
-    const db = client.db("ich-kann-das-sms");
-    const tips = db.collection("tips");
+    const db = client.db("affs");
+    const tips = db.collection("data");
 
-    const tip = await getRandomDocument(tips);
+    const tip = await getRandomDocument(tips, filters);
     const subscribers = await db.collection("subscribers").find().toArray();
 
     if (!tip) {
@@ -49,7 +53,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { content } = tip;
-    const page = removeLeadingZeros(tip.page);
+    const subject = `Arschtritt vom Universum`;
 
     // convert markdown to HTML
     const html = {
@@ -58,15 +62,12 @@ export async function GET(request: NextRequest) {
 
     // send e-mails to all subscribers
     for (const subscriber of subscribers) {
-      const emailBody = [
-        html.content,
-        `<p style='text-align: right; font-size: 6pt'>${page}</p>`,
-      ].join("");
+      const emailBody = [html.content].join("");
 
       await transporter.sendMail({
-        from: `Marc <${EMAIL_SENDER}>`,
+        from: `Das Universum <${EMAIL_SENDER}>`,
         to: subscriber.email,
-        subject: `SMS von Marc`,
+        subject,
         html: emailBody,
       });
     }
@@ -75,9 +76,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       message: logMessage,
-      subject: `SMS von Marc`,
+      subject,
       content: html.content,
-      page,
       numSubscribers: subscribers.length,
       randomNum,
     });

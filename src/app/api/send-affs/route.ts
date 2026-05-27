@@ -5,7 +5,6 @@ import { transporter } from "@/utils";
 import {
   apiAuthCheck,
   getRandomDocument,
-  removeLeadingZeros,
   getRandomNumBetweenZeroAnd,
 } from "../utils";
 
@@ -36,8 +35,8 @@ export async function GET(request: NextRequest) {
 
   try {
     await client.connect();
-    const db = client.db("ich-kann-das-sms");
-    const tips = db.collection("tips");
+    const db = client.db("affs");
+    const tips = db.collection("data");
 
     const tip = await getRandomDocument(tips);
     const subscribers = await db.collection("subscribers").find().toArray();
@@ -49,7 +48,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { content } = tip;
-    const page = removeLeadingZeros(tip.page);
+    const subject = `Arschtritt vom Universum`;
 
     // convert markdown to HTML
     const html = {
@@ -58,15 +57,12 @@ export async function GET(request: NextRequest) {
 
     // send e-mails to all subscribers
     for (const subscriber of subscribers) {
-      const emailBody = [
-        html.content,
-        `<p style='text-align: right; font-size: 6pt'>${page}</p>`,
-      ].join("");
+      const emailBody = [html.content].join("");
 
       await transporter.sendMail({
-        from: `Marc <${EMAIL_SENDER}>`,
+        from: `Das Universum <${EMAIL_SENDER}>`,
         to: subscriber.email,
-        subject: `SMS von Marc`,
+        subject,
         html: emailBody,
       });
     }
@@ -75,9 +71,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       message: logMessage,
-      subject: `SMS von Marc`,
+      subject,
       content: html.content,
-      page,
       numSubscribers: subscribers.length,
       randomNum,
     });
